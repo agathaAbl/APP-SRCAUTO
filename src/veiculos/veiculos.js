@@ -44,14 +44,7 @@ const MESES = [
   'Dezembro',
 ];
 
-// Mapeamento de status (ajuste conforme sua lógica)
-const STATUS_CONFIG = {
-  0: { label: 'Pendente', color: '#6b7280' },
-  1: { label: 'Em Análise', color: '#f59e0b' },
-  2: { label: 'Rejeitado', color: '#ef4444' },
-  3: { label: 'Registrado', color: '#10b981' },
-  4: { label: 'Cancelado', color: '#8b5cf6' },
-};
+// FIX 1: Removido STATUS_CONFIG duplicado que estava aqui no topo
 
 function formatarDataParaApi(data) {
   const a = data.getFullYear();
@@ -75,6 +68,26 @@ export default function Veiculos({ navigation }) {
   const mes = dataSelecionada.getMonth();
   const dia = dataSelecionada.getDate();
 
+  // FIX 2: STATUS_CONFIG mantido apenas aqui dentro do componente
+  const STATUS_CONFIG = {
+    0: { label: 'Todos', color: '#6b7280' },
+    1: { label: 'Cadastrado', color: '#3b82f6' },
+    2: { label: 'Alterado', color: '#6366f1' },
+    3: { label: 'Registrado', color: '#10b981' },
+    4: { label: 'Erro', color: '#ef4444' },
+    5: { label: 'Baixado', color: '#f59e0b' },
+    6: { label: 'Cancelado', color: '#8b5cf6' },
+    7: { label: 'Recusado', color: '#dc2626' },
+    8: { label: 'Verificado', color: '#22c55e' },
+    9: { label: 'EnviadoImagem', color: '#0ea5e9' },
+    10: { label: 'Transmitido', color: '#14b8a6' },
+  };
+
+  // FIX 3: Função getStatusInfo que estava faltando
+  function getStatusInfo(status) {
+    return STATUS_CONFIG[status] || { label: 'Desconhecido', color: '#6b7280' };
+  }
+
   // Get unique status from vehicles
   const statusDisponiveis = [...new Set(vehicles.map(v => v.status))].sort((a, b) => a - b);
 
@@ -89,7 +102,7 @@ export default function Veiculos({ navigation }) {
       String(v.banco || '').toLowerCase().includes(termo)
     );
 
-    const matchesStatus = statusSelecionados.length === 0 || 
+    const matchesStatus = statusSelecionados.length === 0 ||
                           statusSelecionados.includes(v.status);
 
     return matchesSearch && matchesStatus;
@@ -205,22 +218,7 @@ export default function Veiculos({ navigation }) {
     buscarVeiculos();
   }, [dataSelecionada]);
 
-// Mapeamento de status conforme sua lista
-const STATUS_CONFIG = {
-  0: { label: 'Todos', color: '#6b7280' },
-  1: { label: 'Cadastrado', color: '#3b82f6' },
-  2: { label: 'Alterado', color: '#6366f1' },
-  3: { label: 'Registrado', color: '#10b981' },
-  4: { label: 'Erro', color: '#ef4444' },
-  5: { label: 'Baixado', color: '#f59e0b' },
-  6: { label: 'Cancelado', color: '#8b5cf6' },
-  7: { label: 'Recusado', color: '#dc2626' },
-  8: { label: 'Verificado', color: '#22c55e' },
-  9: { label: 'EnviadoImagem', color: '#0ea5e9' },
-  10: { label: 'Transmitido', color: '#14b8a6' },
-};
-
-  };
+  // FIX 4: Removido o `};` solto que fechava o componente prematuramente
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
@@ -229,9 +227,9 @@ const STATUS_CONFIG = {
 
         <View style={styles.header}>
           <Text style={styles.titulo}>Veículos</Text>
-          
+
           {/* Botão de Filtro no Header */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.filtroHeaderBtn}
             onPress={() => setModalVisivel(true)}
           >
@@ -259,8 +257,8 @@ const STATUS_CONFIG = {
 
         {/* Active Filters Display */}
         {statusSelecionados.length > 0 && (
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.filtrosAtivosContainer}
             contentContainerStyle={styles.filtrosAtivosContent}
@@ -268,11 +266,11 @@ const STATUS_CONFIG = {
             {statusSelecionados.map((statusVal) => {
               const statusInfo = getStatusInfo(statusVal);
               return (
-                <View 
-                  key={statusVal} 
+                <View
+                  key={statusVal}
                   style={[
                     styles.chipFiltroAtivo,
-                    { backgroundColor: statusInfo.color }
+                    { backgroundColor: statusInfo.color },
                   ]}
                 >
                   <Text style={styles.chipFiltroAtivoText}>
@@ -312,7 +310,7 @@ const STATUS_CONFIG = {
             {veiculosFiltrados.length > 0 ? (
               veiculosFiltrados.map((veiculo, index) => {
                 const statusInfo = getStatusInfo(veiculo.status);
-                
+
                 return (
                   <View key={veiculo.id ?? index} style={styles.card}>
                     <View style={styles.cardHeader}>
@@ -374,12 +372,12 @@ const STATUS_CONFIG = {
           animationType="slide"
           onRequestClose={() => setModalVisivel(false)}
         >
-          <Pressable 
+          <Pressable
             style={styles.modalOverlay}
             onPress={() => setModalVisivel(false)}
           >
-            <Pressable 
-              style={styles.modalContent} 
+            <Pressable
+              style={styles.modalContent}
               onPress={(e) => e.stopPropagation()}
             >
               <View style={styles.modalHeader}>
@@ -394,7 +392,7 @@ const STATUS_CONFIG = {
                   const statusInfo = getStatusInfo(status);
                   const isSelected = statusSelecionados.includes(status);
                   const qtd = vehicles.filter(v => v.status === status).length;
-                  
+
                   return (
                     <TouchableOpacity
                       key={status}
@@ -403,11 +401,11 @@ const STATUS_CONFIG = {
                       activeOpacity={0.7}
                     >
                       <View style={styles.opcaoFiltroLeft}>
-                        <View 
+                        <View
                           style={[
-                            styles.colorIndicator, 
-                            { backgroundColor: statusInfo.color }
-                          ]} 
+                            styles.colorIndicator,
+                            { backgroundColor: statusInfo.color },
+                          ]}
                         />
                         <View>
                           <Text style={styles.opcaoFiltroLabel}>
@@ -418,15 +416,15 @@ const STATUS_CONFIG = {
                           </Text>
                         </View>
                       </View>
-                      
-                      <View 
+
+                      <View
                         style={[
                           styles.checkbox,
                           isSelected && styles.checkboxChecked,
-                          isSelected && { 
+                          isSelected && {
                             backgroundColor: statusInfo.color,
-                            borderColor: statusInfo.color
-                          }
+                            borderColor: statusInfo.color,
+                          },
                         ]}
                       >
                         {isSelected && (
@@ -439,14 +437,14 @@ const STATUS_CONFIG = {
               </ScrollView>
 
               <View style={styles.modalFooter}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.btnLimpar}
                   onPress={limparFiltros}
                 >
                   <Text style={styles.btnLimparTexto}>Limpar</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.btnAplicar}
                   onPress={aplicarFiltros}
                 >
@@ -464,8 +462,7 @@ const STATUS_CONFIG = {
       </SafeAreaView>
     </View>
   );
-
-
+} // FIX 4: Chave de fechamento do componente adicionada aqui
 
 const styles = StyleSheet.create({
   header: {

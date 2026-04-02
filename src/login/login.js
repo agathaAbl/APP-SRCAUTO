@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -18,7 +19,7 @@ import { loginRequest } from '../services/auth';
 import { saveAuth } from '../services/storage';
 import styles from './styleslogin';
 
-export default function login({ navigation }) {
+export default function Login({ navigation }) {
   const [user, setUser] = useState('');
   const [pass, setPass] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -94,7 +95,7 @@ export default function login({ navigation }) {
           <Animated.View style={[styles.logoWrap, { opacity: logoAnim }]}>
             <View style={styles.logoBox}>
               <Image
-                source={require('../../../srcauto/assets/Images/logo-branca-src.png')}
+                source={require('../assets/Images/logo-branca-src.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
