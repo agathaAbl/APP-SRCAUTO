@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { House, Car, Bell } from 'phosphor-react-native';
+import {menulateralstyles} from './menulateralstyles';
 
 export default function BottomMenu({ navigation, notificacoes = [] }) {
   return (

@@ -45,8 +45,8 @@ export default function CalendarioRegistros({ dataSelecionada, setDataSelecionad
                   maxDate={new Date().toISOString().split('T')[0]}
                   minDate={'2020-01-01'}
                   theme={{
-                    calendarBackground: '#f5f0eb',
-                    backgroundColor: '#f5f0eb',
+                    calendarBackground: '#2c3e50',
+                    backgroundColor: '#2c3e50',
                     textSectionTitleColor: '#25c7a4',   
                     selectedDayBackgroundColor: '#25c7a4',
                     selectedDayTextColor: '#ffffff',
