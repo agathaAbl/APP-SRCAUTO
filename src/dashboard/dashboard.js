@@ -19,7 +19,7 @@ import BottomMenu from '../menulateral/menulateral';
 import { getAuth } from '../services/storage'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'https://srcauto-homolog.grupoabl.com.br/Api/SRC/DashBoardGeral';
+const API_URL = 'https://srcauto-homolog.grupoabl.com.br/Api/SRC/DashBoardGeral?';
 
 const MESES = [
   'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
@@ -82,95 +82,90 @@ export default function Dashboard({ navigation }) {
 
  
   async function buscarDashboard() {
-    try {
-      setCarregando(true);
-      setErroApi('');
+  try {
+    setCarregando(true);
+    setErroApi('');
 
-      
-      const auth = await getAuth();
-      
-      
-      if (!auth || !auth.token) {
-        setErroApi('Sessão expirada. Faça login novamente.');
-        setCarregando(false);
-        return;
-      }
-
-     const dadostoken = await AsyncStorage.getItem("Token")
-     const token = JSON.parse(dadostoken)
-      const dataFormatada = formatarDataParaApi(dataSelecionada);
-console.log("aquii",token)
-      
-      const response = await fetch(
-        `${API_URL}?Data=${dataFormatada}&DiaUtil=True`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`, 
-          },
-        }
-      );
-
-     
-      if (response.status === 401) {
-        setErroApi('Sessão inválida ou expirada.');
-        setCarregando(false);
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-
-      const dados = {
-        ...data,
-        RegDiaSel_IN: normalizarNumero(data?.RegDiaSel_IN),
-        RegSemAnt_IN: normalizarNumero(data?.RegSemAnt_IN),
-        RegMesAnt_IN: normalizarNumero(data?.RegMesAnt_IN),
-        RegDiaAnt_IN: normalizarNumero(data?.RegDiaAnt_IN),
-        VarDia_PC: normalizarNumero(data?.VarDia_PC),
-      };
-
-      setCards([
-        { valor: formatarNumero(dados.RegDiaSel_IN), descricao: 'Registros Hoje', icon: CalendarDotsIcon, cor: '#39d0a1' },
-        { valor: formatarNumero(dados.RegSemAnt_IN), descricao: 'Semana Anterior', icon: ChartBar, cor: '#4da6ff' },
-        { valor: formatarNumero(dados.RegMesAnt_IN), descricao: 'Mês Anterior', icon: Car, cor: '#ffb84d' },
-        {
-          valor: dados.RegDiaAnt_IN === 0 ? 'Novo' : formatarPercentual(dados.VarDia_PC),
-          descricao: 'Variação Dia', icon: TrendUp, cor: getCorVariacao(dados.VarDia_PC),
-        },
-      ]);
-
-   
-      const listaCredores = data?.Credor || [];
-      setBancos(listaCredores.map((b) => {
-        const regDia = normalizarNumero(b?.RegDiaSel_IN);
-        const regDiaAnt = normalizarNumero(b?.RegDiaAnt_IN);
-        return {
-          ...b, 
-          RegDiaSel_IN: regDia, 
-          RegDiaAnt_IN: regDiaAnt,
-          variacaoFormatada: regDiaAnt === 0 ? 'Novo' : formatarPercentual(b?.VarDia_PC),
-        };
-      }));
-
-
-      setNotificacoes([
-        ...(Array.isArray(data?.Credor) ? data.Credor : []),
-        ...(Array.isArray(data?.Detran) ? data.Detran : []),
-      ]);
-
-    } catch (error) {
-      console.error('Erro ao buscar dashboard:', error);
-      setErroApi('Não foi possível conectar ao servidor.');
-    } finally {
+    // Recupera token apenas do AsyncStorage
+    const dadostoken = await AsyncStorage.getItem("Token");
+    if (!dadostoken) {
+      setErroApi('Sessão expirada. Faça login novamente.');
       setCarregando(false);
+      return;
     }
+    const token = JSON.parse(dadostoken);
+
+    const dataFormatada = formatarDataParaApi(dataSelecionada);
+    const url = `${API_URL}?Data=${dataFormatada}&DiaUtil=True`;
+
+    console.log("🔎 URL chamada:", url);
+    console.log("🔑 Token usado:", token);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      setErroApi('Sessão inválida ou expirada.');
+      setCarregando(false);
+      return;
+    }
+
+    if (!response.ok) {
+      const erroServidor = await response.text();
+      console.error("❌ Erro servidor:", erroServidor);
+      throw new Error(`Erro HTTP: ${response.status} - ${erroServidor}`);
+    }
+
+    const data = await response.json();
+
+    const dados = {
+      ...data,
+      RegDiaSel_IN: normalizarNumero(data?.RegDiaSel_IN),
+      RegSemAnt_IN: normalizarNumero(data?.RegSemAnt_IN),
+      RegMesAnt_IN: normalizarNumero(data?.RegMesAnt_IN),
+      RegDiaAnt_IN: normalizarNumero(data?.RegDiaAnt_IN),
+      VarDia_PC: normalizarNumero(data?.VarDia_PC),
+    };
+
+    setCards([
+      { valor: formatarNumero(dados.RegDiaSel_IN), descricao: 'Registros Hoje', icon: CalendarDotsIcon, cor: '#39d0a1' },
+      { valor: formatarNumero(dados.RegSemAnt_IN), descricao: 'Semana Anterior', icon: ChartBar, cor: '#4da6ff' },
+      { valor: formatarNumero(dados.RegMesAnt_IN), descricao: 'Mês Anterior', icon: Car, cor: '#ffb84d' },
+      {
+        valor: dados.RegDiaAnt_IN === 0 ? 'Novo' : formatarPercentual(dados.VarDia_PC),
+        descricao: 'Variação Dia', icon: TrendUp, cor: getCorVariacao(dados.VarDia_PC),
+      },
+    ]);
+
+    const listaCredores = data?.Credor || [];
+    setBancos(listaCredores.map((b) => {
+      const regDia = normalizarNumero(b?.RegDiaSel_IN);
+      const regDiaAnt = normalizarNumero(b?.RegDiaAnt_IN);
+      return {
+        ...b,
+        RegDiaSel_IN: regDia,
+        RegDiaAnt_IN: regDiaAnt,
+        variacaoFormatada: regDiaAnt === 0 ? 'Novo' : formatarPercentual(b?.VarDia_PC),
+      };
+    }));
+
+    setNotificacoes([
+      ...(Array.isArray(data?.Credor) ? data.Credor : []),
+      ...(Array.isArray(data?.Detran) ? data.Detran : []),
+    ]);
+
+  } catch (error) {
+    console.error('⚠️ Erro ao buscar dashboard:', error);
+    setErroApi('Não foi possível conectar ao servidor.');
+  } finally {
+    setCarregando(false);
   }
+}
 
   
   useEffect(() => { 

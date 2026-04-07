@@ -11,12 +11,7 @@ import {
   Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  MagnifyingGlass,
-  Funnel,
-  X,
-  Check,
-} from 'phosphor-react-native';
+import { MagnifyingGlass, X, Check } from 'phosphor-react-native';
 
 import { getAuth } from '../services/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,7 +21,7 @@ import styles from './veiculosstyles';
 const API_URL = 'https://srcauto-homolog.grupoabl.com.br/Api/Src/VeiculoContrato';
 
 export default function Veiculos({ navigation }) {
-  const [dataSelecionada, setDataSelecionada] = useState(new Date('2025-02-01T12:00:00'));
+ const [dataSelecionada, setDataSelecionada] = useState(new Date());
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -59,7 +54,7 @@ export default function Veiculos({ navigation }) {
   const statusDisponiveis = [...new Set(vehicles.map(v => v.status))].sort((a, b) => a - b);
 
   const veiculosFiltrados = vehicles
-    .filter((v) => {
+    .filter(v => {
       const termo = busca.toLowerCase().trim();
       const matchesSearch = !termo || (
         String(v.plate || '').toLowerCase().includes(termo) ||
@@ -113,66 +108,118 @@ export default function Veiculos({ navigation }) {
     const a = data.getFullYear();
     const m = String(data.getMonth() + 1).padStart(2, '0');
     const d = String(data.getDate()).padStart(2, '0');
-    return `${a}-${m}-${d}`;
+
+    return `${a}-${m}-${d}T00:00:00`;
+    
   }
 
-  async function buscarVeiculos() {
-    try {
-      setLoading(true);
-      setError('');
-      const auth = await getAuth();
-      if (!auth || !auth.token) {
-        setError('Sessão expirada. Faça login novamente.');
-        setLoading(false);
-        return;
-      }
+async function buscarVeiculos() {
+  try {
+    setLoading(true);
+    setError('');
 
-      const token = JSON.parse(await AsyncStorage.getItem('Token'));
-      const dataFormatada = formatarDataParaApi(dataSelecionada);
+    const auth = await getAuth();
 
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ tCotr_Cadt_DT: dataFormatada, tCotr_Stat_CK: 0 }),
-      });
+    let token = auth?.status?.replace(/^"|"$/g, '').trim();
 
-      if (response.status === 401) { setError('Sessão inválida ou expirada.'); setLoading(false); return; }
-      if (response.status === 403) { setError('Acesso negado pela API.'); setLoading(false); return; }
-      if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
-
-      const data = await response.json();
-      let veiculosArray = Array.isArray(data?.sdtVeiculoContrato)
-        ? data.sdtVeiculoContrato
-        : Array.isArray(data) ? data : [];
-
-      const veiculosFormatados = veiculosArray.map(item => {
-        const statusNum = isNaN(Number(item.tCotr_Stat_CK)) ? 0 : Number(item.tCotr_Stat_CK);
-        const statusInfo = getStatusInfo(statusNum);
-        return {
-          id: item.tCotr_ID,
-          contratoNumero: item.tCotr_nrCotr_SS || 'N/A',
-          plate: item.tveic_plac_ss || 'N/A',
-          owner: item.sCotrDvdr_nome_sl || 'N/A',
-          chassi: item.tveic_chss_sl || 'N/A',
-          date: item.tcotr_Cadt_DT ? new Date(item.tcotr_Cadt_DT).toLocaleDateString('pt-BR') : 'N/A',
-          status: statusNum,
-          statusLabel: statusInfo.label,
-          statusColor: statusInfo.color,
-          banco: item.sCotrCrdr_nome_sl || 'N/A',
-          uf: item.sveicuf_sg || 'N/A',
-          restricao: item.tcotrveic_nrrest_in || 'N/A',
-        };
-      });
-
-      setVehicles(veiculosFormatados);
-    } catch (err) {
-      console.error(err);
-      setError('Não foi possível conectar ao servidor.');
-    } finally {
-      setLoading(false);
+    // fallback com chave 'Token' (maiúsculo)
+    if (!token) {
+      const tokenStorage = await AsyncStorage.getItem('Token');
+      token = tokenStorage?.replace(/^"|"$/g, '').trim();
     }
-  }
 
+    // fallback com chave 'token' (minúsculo)
+    if (!token) {
+      const tokenStorage2 = await AsyncStorage.getItem('token');
+      token = tokenStorage2?.replace(/^"|"$/g, '').trim();
+    }
+
+    // logs de diagnóstico
+    console.log('AUTH OBJETO:', auth);
+    console.log('TOKEN FINAL:', token);
+    console.log('TIPO:', typeof token);
+    console.log('PRIMEIROS CHARS:', token?.substring(0, 30));
+    console.log('CHAVES NO STORAGE:', await AsyncStorage.getAllKeys());
+
+    if (!token) {
+      setError('Sessão expirada. Faça login novamente.');
+      return;
+    }
+
+    const dataFormatada = formatarDataParaApi(dataSelecionada);
+
+    console.log('DATA ENVIADA:', dataFormatada);
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        tCotr_Cadt_DT: '2025-01-01T00:00:00',
+        tCotr_Stat_CK: 0
+      })
+    });
+
+    if (response.status === 401) {
+      setError('Sessão inválida ou expirada.');
+      return;
+    }
+
+    if (response.status === 403) {
+      setError('Acesso negado pela API.');
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Erro HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    console.log('RESPOSTA API:', data);
+
+    let veiculosArray = Array.isArray(data?.sdtVeiculoContrato)
+      ? data.sdtVeiculoContrato
+      : Array.isArray(data)
+      ? data
+      : [];
+
+    const veiculosFormatados = veiculosArray.map(item => {
+      const statusNum = isNaN(Number(item.tCotr_Stat_CK))
+        ? 0
+        : Number(item.tCotr_Stat_CK);
+
+      const statusInfo = getStatusInfo(statusNum);
+
+      return {
+        id: item.tCotr_ID,
+        contratoNumero: item.tCotr_nrCotr_SS || 'N/A',
+        plate: item.tveic_plac_ss || 'N/A',
+        owner: item.sCotrDvdr_nome_sl || 'N/A',
+        chassi: item.tveic_chss_sl || 'N/A',
+        date: item.tcotr_Cadt_DT || 'N/A',
+        status: statusNum,
+        statusLabel: statusInfo.label,
+        statusColor: statusInfo.color,
+        banco: item.sCotrCrdr_nome_sl || 'N/A',
+        uf: item.sveicuf_sg || 'N/A',
+        restricao: item.tcotrveic_nrrest_in || 'N/A',
+        original: item,
+      };
+    });
+
+    setVehicles(veiculosFormatados);
+
+  } catch (err) {
+    console.error(err);
+    setError('Não foi possível conectar ao servidor.');
+  } finally {
+    setLoading(false);
+  }
+}
+  
   useEffect(() => { buscarVeiculos(); }, [dataSelecionada]);
 
   return (
@@ -182,14 +229,13 @@ export default function Veiculos({ navigation }) {
 
         <View style={styles.header}>
           <Text style={styles.titulo}>Veículos</Text>
-          
         </View>
 
         <View style={styles.buscaContainer}>
           <MagnifyingGlass size={20} color="#64748b" />
           <TextInput
-            style={styles.buscaInput}
-            placeholder="Buscar por chassi, placa ou gravame..."
+            style={[styles.buscaInput, { fontSize: 20 }]}
+            placeholder="Buscar veículo..."
             placeholderTextColor="#64748b"
             value={busca}
             onChangeText={setBusca}
@@ -209,7 +255,6 @@ export default function Veiculos({ navigation }) {
         >
           {Object.entries(STATUS_CONFIG).map(([key, { label, color }]) => {
             const keyNum = Number(key);
-
             const selecionado =
               keyNum === 0
                 ? statusSelecionados.length === 0
@@ -220,11 +265,8 @@ export default function Veiculos({ navigation }) {
                 key={key}
                 activeOpacity={0.75}
                 onPress={() => {
-                  if (keyNum === 0) {
-                    setStatusSelecionados([]);
-                  } else {
-                    setStatusSelecionados([keyNum]);
-                  }
+                  if (keyNum === 0) setStatusSelecionados([]);
+                  else setStatusSelecionados([keyNum]);
                   scrollParaStatus(keyNum);
                 }}
                 style={{
@@ -272,10 +314,12 @@ export default function Veiculos({ navigation }) {
         >
           <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
             {veiculosFiltrados.length > 0
-              ? veiculosFiltrados.map((v, i) => (
-                <View
-                  key={v.id ?? i}
+              ? veiculosFiltrados.map((v) => (
+                <TouchableOpacity
+                  key={v.id}
                   style={styles.card}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('contrato', { veiculo: v.original })}
                   onLayout={(e) => registrarPosicao(v.status, e.nativeEvent.layout.y)}
                 >
                   <View style={styles.cardHeader}>
@@ -315,7 +359,7 @@ export default function Veiculos({ navigation }) {
                   <View style={styles.cardFooter}>
                     <Text style={styles.dataText}>{v.date}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))
               : !loading
                 ? <Text style={styles.listaVazia}>Nenhum veículo encontrado.</Text>

@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#0f172a',
   },
-  titulo: { color: '#fff', fontSize: 28, fontWeight: '800' },
+  titulo: { color: '#fff', fontSize: 32, fontWeight: '800' },
   filtroHeaderBtn: {
     width: 44,
     height: 44,
@@ -80,7 +80,6 @@ const styles = StyleSheet.create({
   },
   buscaInput: { flex: 1, fontSize: 14, color: '#e2e8f0' },
 
-  // Barra de status (badges de scroll)
   statusBarScroll: {
     flexGrow: 0,
     marginBottom: 10,
@@ -101,11 +100,11 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   statusPillText: {
-    fontSize: 12,
+    fontSize: 18,
     fontWeight: '600',
   },
 
-  // Chips de status ativos (modal)
+
   filtrosAtivosContainer: { marginHorizontal: 16, marginBottom: 8 },
   filtrosAtivosContent: { gap: 8 },
   chipFiltroAtivo: {
@@ -130,7 +129,7 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 16,
   },
-  statusText: { color: '#e2e8f0', fontSize: 14 },
+  statusText: { color: '#e2e8f0', fontSize: 18 },
   erroBox: {
     marginHorizontal: 16,
     marginVertical: 8,
@@ -157,16 +156,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
-    minHeight: 48, // ✅ garante altura fixa pro cálculo do CARD_HEIGHT
+    minHeight: 48, 
   },
-  placa: { color: '#fff', fontSize: 16, fontWeight: '700', lineHeight: 22 },
-  contratoText: { color: '#94a3b8', fontSize: 12, lineHeight: 18, marginTop: 2 },
+  placa: { color: '#000000', fontSize: 16, fontWeight: 'bold', backgroundColor: '#f1f5f9', paddingHorizontal: 8, borderRadius:10, marginBottom: 6,},
+  contratoText: { color: '#d1d5db', fontSize: 14, martgintop: 6, },
+  labelSmall: { color: '#60a5fa', fontSize: 12,  },
+  valorDestaque: { color: '#ffffff', fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  valorSecundario: { color: '#f1f5f9', fontSize: 14,},
+  dataText: { color: '#94a3b8', fontSize: 12, textAlign: 'right' },
+  listaVazia: { color: '#64748b', textAlign: 'center', padding: 20 },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   statusDot: {
     width: 8,
@@ -175,34 +179,29 @@ const styles = StyleSheet.create({
     marginRight: 6,
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
-  statusBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  statusBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
 
-  // Linhas internas do card
+  
   cardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 6,
-    minHeight: 38, // ✅ altura fixa para o cálculo
+    minHeight: 38, 
   },
   cardCol: { flex: 1 },
   cardColRight: { flex: 1, alignItems: 'flex-end' },
   cardLinha: {
     marginTop: 8,
-    minHeight: 38, // ✅ altura fixa para o cálculo
+    minHeight: 38, 
   },
   cardFooter: {
     marginTop: 8,
-    minHeight: 28, // ✅ altura fixa para o cálculo
+    minHeight: 28, 
   },
-  labelSmall: { color: '#94a3b8', fontSize: 12, lineHeight: 18 },
-  valorDestaque: { color: '#fff', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  valorSecundario: { color: '#e2e8f0', fontSize: 14, lineHeight: 20 },
-  dataText: { color: '#94a3b8', fontSize: 12, textAlign: 'right' },
-  listaVazia: { color: '#64748b', textAlign: 'center', padding: 20 },
-
+ 
   // FlatList container
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingTop: 8,
     paddingBottom: 100,
   },

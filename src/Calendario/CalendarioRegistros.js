@@ -41,7 +41,7 @@ export default function CalendarioRegistros({ dataSelecionada, setDataSelecionad
                   markedDates={{
                     [dataFormatada]: { selected: true, selectedColor: '#25c7a4' },
                   }}
-                  // ✅ Limites de data para testes
+                  
                   maxDate={new Date().toISOString().split('T')[0]}
                   minDate={'2020-01-01'}
                   theme={{

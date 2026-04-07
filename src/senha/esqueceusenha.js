@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretLeft, Envelope, CheckCircle } from 'phosphor-react-native';
 import styles from '../senha/esqueceusenhastyles';
 
-export default function esqueceusenha({ navigation }) {
+export default function EsqueceuSenha({ navigation }) {
 
   const [email, setEmail] = useState('');
   const [emailFocus, setEmailFocus] = useState(false);
