@@ -7,12 +7,9 @@ import {
   StatusBar,
   ActivityIndicator,
   TextInput,
-  Modal,
-  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MagnifyingGlass, X, Check } from 'phosphor-react-native';
-
+import { MagnifyingGlass, CaretLeft, CaretRight } from 'phosphor-react-native';
 import { getAuth } from '../services/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomMenu from '../menulateral/menulateral';
@@ -21,17 +18,14 @@ import styles from './veiculosstyles';
 const API_URL = 'https://srcauto-homolog.grupoabl.com.br/Api/Src/VeiculoContrato';
 
 export default function Veiculos({ navigation }) {
- const [dataSelecionada, setDataSelecionada] = useState(new Date());
+  const [dataSelecionada, setDataSelecionada] = useState(new Date());
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [busca, setBusca] = useState('');
   const [statusSelecionados, setStatusSelecionados] = useState([]);
-  const [modalVisivel, setModalVisivel] = useState(false);
 
   const scrollRef = useRef(null);
-  const posicoesRef = useRef({});
-  const registradosRef = useRef({});
 
   const STATUS_CONFIG = {
     0: { label: 'Todos', color: '#6b7280' },
@@ -47,180 +41,117 @@ export default function Veiculos({ navigation }) {
     10: { label: 'Transmitido', color: '#14b8a6' },
   };
 
+  const mudarData = (dias) => {
+    const novaData = new Date(dataSelecionada);
+    novaData.setDate(novaData.getDate() + dias);
+    setDataSelecionada(novaData);
+  };
+
+  function formatarDataParaApi(data) {
+    const ano = data.getFullYear();
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const dia = String(data.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}T00:00:00`;
+  }
+
   function getStatusInfo(status) {
     return STATUS_CONFIG[status] || { label: 'Desconhecido', color: '#6b7280' };
   }
 
-  const statusDisponiveis = [...new Set(vehicles.map(v => v.status))].sort((a, b) => a - b);
-
-  const veiculosFiltrados = vehicles
-    .filter(v => {
-      const termo = busca.toLowerCase().trim();
-      const matchesSearch = !termo || (
-        String(v.plate || '').toLowerCase().includes(termo) ||
-        String(v.owner || '').toLowerCase().includes(termo) ||
-        String(v.contratoNumero || '').toLowerCase().includes(termo) ||
-        String(v.chassi || '').toLowerCase().includes(termo) ||
-        String(v.banco || '').toLowerCase().includes(termo)
-      );
-      const matchesStatus = statusSelecionados.length === 0 || statusSelecionados.includes(v.status);
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => a.status - b.status);
-
-  useEffect(() => {
-    posicoesRef.current = {};
-    registradosRef.current = {};
-  }, [vehicles, statusSelecionados, busca]);
-
-  function registrarPosicao(status, y) {
-    if (registradosRef.current[status]) return;
-    registradosRef.current[status] = true;
-    posicoesRef.current[status] = y;
-  }
-
-  function scrollParaStatus(keyNum) {
-    if (keyNum === 0) {
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
-      return;
-    }
-    const y = posicoesRef.current[keyNum];
-    if (y !== undefined) {
-      scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
-    }
-  }
-
-  function toggleStatus(status) {
-    setStatusSelecionados(prev =>
-      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+  const veiculosFiltrados = vehicles.filter(v => {
+    const termo = busca.toLowerCase().trim();
+    const matchesSearch = !termo || (
+      v.plate.toLowerCase().includes(termo) ||
+      v.owner.toLowerCase().includes(termo)
     );
-  }
+    const matchesStatus = statusSelecionados.length === 0 || statusSelecionados.includes(v.status);
+    return matchesSearch && matchesStatus;
+  });
 
-  function limparFiltros() {
-    setStatusSelecionados([]);
-  }
+  async function buscarVeiculos() {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const auth = await getAuth();
+      let token = auth?.status?.replace(/^"|"$/g, '').trim();
 
-  function aplicarFiltros() {
-    setModalVisivel(false);
-  }
+      if (!token) {
+        const tokenStorage = await AsyncStorage.getItem('Token');
+        token = tokenStorage?.replace(/^"|"$/g, '').trim();
+      }
 
-  function formatarDataParaApi(data) {
-    const a = data.getFullYear();
-    const m = String(data.getMonth() + 1).padStart(2, '0');
-    const d = String(data.getDate()).padStart(2, '0');
+      // --- LOG 1: TOKEN ---
+      console.log('--- [DEBUG] AUTHENTICATION ---');
+      console.log('Token (fatiado):', token ? `${token.substring(0, 30)}...` : 'NÃO ENCONTRADO');
 
-    return `${a}-${m}-${d}T00:00:00`;
-    
-  }
-
-async function buscarVeiculos() {
-  try {
-    setLoading(true);
-    setError('');
-
-    const auth = await getAuth();
-
-    let token = auth?.status?.replace(/^"|"$/g, '').trim();
-
-    // fallback com chave 'Token' (maiúsculo)
-    if (!token) {
-      const tokenStorage = await AsyncStorage.getItem('Token');
-      token = tokenStorage?.replace(/^"|"$/g, '').trim();
-    }
-
-    // fallback com chave 'token' (minúsculo)
-    if (!token) {
-      const tokenStorage2 = await AsyncStorage.getItem('token');
-      token = tokenStorage2?.replace(/^"|"$/g, '').trim();
-    }
-
-    // logs de diagnóstico
-    console.log('AUTH OBJETO:', auth);
-    console.log('TOKEN FINAL:', token);
-    console.log('TIPO:', typeof token);
-    console.log('PRIMEIROS CHARS:', token?.substring(0, 30));
-    console.log('CHAVES NO STORAGE:', await AsyncStorage.getAllKeys());
-
-    if (!token) {
-      setError('Sessão expirada. Faça login novamente.');
-      return;
-    }
-
-    const dataFormatada = formatarDataParaApi(dataSelecionada);
-
-    console.log('DATA ENVIADA:', dataFormatada);
-
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        tCotr_Cadt_DT: '2025-01-01T00:00:00',
-        tCotr_Stat_CK: 0
-      })
-    });
-
-    if (response.status === 401) {
-      setError('Sessão inválida ou expirada.');
-      return;
-    }
-
-    if (response.status === 403) {
-      setError('Acesso negado pela API.');
-      return;
-    }
-
-    if (!response.ok) {
-      throw new Error(`Erro HTTP: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    console.log('RESPOSTA API:', data);
-
-    let veiculosArray = Array.isArray(data?.sdtVeiculoContrato)
-      ? data.sdtVeiculoContrato
-      : Array.isArray(data)
-      ? data
-      : [];
-
-    const veiculosFormatados = veiculosArray.map(item => {
-      const statusNum = isNaN(Number(item.tCotr_Stat_CK))
-        ? 0
-        : Number(item.tCotr_Stat_CK);
-
-      const statusInfo = getStatusInfo(statusNum);
-
-      return {
-        id: item.tCotr_ID,
-        contratoNumero: item.tCotr_nrCotr_SS || 'N/A',
-        plate: item.tveic_plac_ss || 'N/A',
-        owner: item.sCotrDvdr_nome_sl || 'N/A',
-        chassi: item.tveic_chss_sl || 'N/A',
-        date: item.tcotr_Cadt_DT || 'N/A',
-        status: statusNum,
-        statusLabel: statusInfo.label,
-        statusColor: statusInfo.color,
-        banco: item.sCotrCrdr_nome_sl || 'N/A',
-        uf: item.sveicuf_sg || 'N/A',
-        restricao: item.tcotrveic_nrrest_in || 'N/A',
-        original: item,
+      const payload = {
+        tCotr_Cadt_DT: formatarDataParaApi(dataSelecionada),
+        tCotr_Stat_CK: 0 
       };
-    });
 
-    setVehicles(veiculosFormatados);
+      // --- LOG 2: REQUISIÇÃO ---
+      console.log('--- [DEBUG] REQUEST ---');
+      console.log('URL de Destino:', API_URL);
+      console.log('Corpo do POST:', JSON.stringify(payload));
 
-  } catch (err) {
-    console.error(err);
-    setError('Não foi possível conectar ao servidor.');
-  } finally {
-    setLoading(false);
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload)
+      });
+
+      // --- LOG 3: STATUS HTTP ---
+      console.log('Resposta HTTP Status:', response.status);
+
+      const data = await response.json();
+      
+      // --- LOG 4: RESPOSTA COMPLETA ---
+      console.log('--- [DEBUG] API RESPONSE ---');
+      console.log(JSON.stringify(data, null, 2));
+
+      let veiculosArray = data?.sdtVeiculoContrato || data?.SDTVeiculoContrato || (Array.isArray(data) ? data : []);
+      
+      console.log(`Quantidade de itens encontrados: ${veiculosArray.length}`);
+
+      const veiculosFormatados = veiculosArray.map(item => {
+        const statusRaw = item.tCotr_Stat_CK ?? item.tcotr_stat_ck ?? 0;
+        const statusNum = Number(statusRaw);
+        const info = getStatusInfo(statusNum);
+
+        return {
+          id: item.tCotr_ID || item.tcotr_id || Math.random().toString(),
+          contratoNumero: item.tCotr_nrCotr_SS || item.tcotr_nrcotr_ss || 'N/A',
+          plate: item.tveic_plac_ss || item.Tveic_Plac_SS || 'N/A',
+          owner: item.sCotrDvdr_nome_sl || item.scotrdvdr_nome_sl || 'N/A',
+          chassi: item.tveic_chss_sl || 'N/A',
+          date: item.tcotr_Cadt_DT || 'N/A',
+          status: statusNum,
+          statusLabel: info.label,
+          statusColor: info.color,
+          banco: item.sCotrCrdr_nome_sl || 'N/A',
+          uf: item.sveicuf_sg || 'N/A',
+          restricao: item.tcotrveic_nrrest_in || 'N/A',
+          original: item,
+        };
+      });
+
+      setVehicles(veiculosFormatados);
+    } catch (err) {
+      console.error('--- [ERRO] FALHA NA BUSCA ---');
+      console.error(err);
+      setError('Erro ao carregar dados.');
+    } finally {
+      setLoading(false);
+    }
   }
-}
-  
-  useEffect(() => { buscarVeiculos(); }, [dataSelecionada]);
+
+  useEffect(() => { 
+    buscarVeiculos(); 
+  }, [dataSelecionada]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
@@ -231,96 +162,75 @@ async function buscarVeiculos() {
           <Text style={styles.titulo}>Veículos</Text>
         </View>
 
+        {/* NAVEGAÇÃO DE DATA */}
+        <View style={{ 
+          flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
+          paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#1e293b',
+          marginHorizontal: 16, borderRadius: 12, marginBottom: 10
+        }}>
+          <TouchableOpacity onPress={() => mudarData(-1)}>
+            <CaretLeft size={28} color="#10b981" weight="bold" />
+          </TouchableOpacity>
+          
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}>BUSCA POR DIA</Text>
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
+              {dataSelecionada.toLocaleDateString('pt-BR')}
+            </Text>
+          </View>
+
+          <TouchableOpacity onPress={() => mudarData(1)}>
+            <CaretRight size={28} color="#10b981" weight="bold" />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.buscaContainer}>
           <MagnifyingGlass size={20} color="#64748b" />
           <TextInput
-            style={[styles.buscaInput, { fontSize: 20 }]}
-            placeholder="Buscar veículo..."
+            style={[styles.buscaInput, { fontSize: 16 }]}
+            placeholder="Buscar placa ou cliente..."
             placeholderTextColor="#64748b"
             value={busca}
             onChangeText={setBusca}
           />
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginVertical: 8, flexGrow: 0 }}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          {Object.entries(STATUS_CONFIG).map(([key, { label, color }]) => {
-            const keyNum = Number(key);
-            const selecionado =
-              keyNum === 0
-                ? statusSelecionados.length === 0
-                : statusSelecionados.includes(keyNum);
-
-            return (
-              <TouchableOpacity
-                key={key}
-                activeOpacity={0.75}
-                onPress={() => {
-                  if (keyNum === 0) setStatusSelecionados([]);
-                  else setStatusSelecionados([keyNum]);
-                  scrollParaStatus(keyNum);
-                }}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 5,
-                  borderRadius: 999,
-                  backgroundColor: selecionado ? color : 'transparent',
-                  borderWidth: 1.5,
-                  borderColor: color,
-                }}
-              >
-                <Text
+        {/* FILTROS DE STATUS */}
+        <View style={{ height: 50, marginBottom: 10 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center' }}>
+            {Object.entries(STATUS_CONFIG).map(([key, { label, color }]) => {
+              const keyNum = Number(key);
+              const selecionado = keyNum === 0 ? statusSelecionados.length === 0 : statusSelecionados.includes(keyNum);
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => setStatusSelecionados(keyNum === 0 ? [] : [keyNum])}
                   style={{
-                    color: selecionado ? '#fff' : color,
-                    fontSize: 12,
-                    fontWeight: '600',
+                    paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20,
+                    backgroundColor: selecionado ? color : '#1e293b',
+                    borderWidth: 1.5, borderColor: color,
                   }}
                 >
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+                  <Text style={{ color: selecionado ? '#fff' : color, fontSize: 12, fontWeight: 'bold' }}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
 
-        <Text style={[styles.resultadosText, { marginHorizontal: 16, marginBottom: 8 }]}>
-          {veiculosFiltrados.length} veículo{veiculosFiltrados.length !== 1 ? 's' : ''} encontrado{veiculosFiltrados.length !== 1 ? 's' : ''}
-        </Text>
-
-        {loading && (
-          <View style={styles.statusBox}>
-            <ActivityIndicator color="#10b981" />
-            <Text style={styles.statusText}>Carregando veículos...</Text>
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#10b981" />
+            <Text style={{ color: '#94a3b8', marginTop: 15 }}>Consultando registros...</Text>
           </View>
-        )}
-
-        {error ? (
-          <View style={styles.erroBox}><Text style={styles.erroText}>{error}</Text></View>
-        ) : null}
-
-        <ScrollView
-          ref={scrollRef}
-          showsVerticalScrollIndicator={false}
-          style={{ flex: 1 }}
-        >
-          <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-            {veiculosFiltrados.length > 0
-              ? veiculosFiltrados.map((v) => (
+        ) : (
+          <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+            <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
+              {veiculosFiltrados.map((v) => (
                 <TouchableOpacity
                   key={v.id}
                   style={styles.card}
-                  activeOpacity={0.8}
                   onPress={() => navigation.navigate('contrato', { veiculo: v.original })}
-                  onLayout={(e) => registrarPosicao(v.status, e.nativeEvent.layout.y)}
                 >
                   <View style={styles.cardHeader}>
                     <View>
@@ -328,105 +238,30 @@ async function buscarVeiculos() {
                       <Text style={styles.contratoText}>{v.contratoNumero}</Text>
                     </View>
                     <View style={[styles.statusBadge, { backgroundColor: v.statusColor }]}>
-                      <View style={styles.statusDot} />
                       <Text style={styles.statusBadgeText}>{v.statusLabel}</Text>
                     </View>
                   </View>
                   <View style={styles.cardRow}>
-                    <View style={styles.cardCol}>
-                      <Text style={styles.labelSmall}>Financiado</Text>
-                      <Text style={styles.valorDestaque}>{v.owner}</Text>
-                    </View>
-                    <View style={styles.cardColRight}>
-                      <Text style={styles.labelSmall}>UF</Text>
-                      <Text style={styles.valorDestaque}>{v.uf}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.cardLinha}>
-                    <Text style={styles.labelSmall}>Chassi</Text>
-                    <Text style={styles.valorSecundario}>{v.chassi}</Text>
-                  </View>
-                  <View style={styles.cardRow}>
-                    <View style={styles.cardCol}>
-                      <Text style={styles.labelSmall}>Gravame</Text>
-                      <Text style={styles.valorSecundario}>{v.restricao}</Text>
-                    </View>
-                    <View style={styles.cardColRight}>
-                      <Text style={styles.labelSmall}>Banco</Text>
-                      <Text style={styles.valorDestaque}>{v.banco}</Text>
-                    </View>
+                    <Text style={styles.valorDestaque} numberOfLines={1}>{v.owner}</Text>
+                    <Text style={styles.valorDestaque}>{v.uf}</Text>
                   </View>
                   <View style={styles.cardFooter}>
-                    <Text style={styles.dataText}>{v.date}</Text>
+                    <Text style={styles.dataText}>Cadastrado em: {v.date}</Text>
                   </View>
                 </TouchableOpacity>
-              ))
-              : !loading
-                ? <Text style={styles.listaVazia}>Nenhum veículo encontrado.</Text>
-                : null
-            }
-            <View style={{ height: 100 }} />
-          </View>
-        </ScrollView>
+              ))}
 
-        <Modal visible={modalVisivel} transparent animationType="slide">
-          <Pressable style={styles.modalOverlay} onPress={() => setModalVisivel(false)}>
-            <Pressable style={styles.modalContent} onPress={e => e.stopPropagation()}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitulo}>Filtrar por Status</Text>
-                <TouchableOpacity onPress={() => setModalVisivel(false)}>
-                  <X size={24} color="#94a3b8" weight="bold" />
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={styles.modalBody}>
-                {statusDisponiveis.map((s) => {
-                  const selecionado = statusSelecionados.includes(s);
-                  const info = getStatusInfo(s);
-                  const qtd = vehicles.filter(v => v.status === s).length;
-                  return (
-                    <TouchableOpacity
-                      key={s}
-                      onPress={() => toggleStatus(s)}
-                      style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 14 }}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: info.color }} />
-                        <View>
-                          <Text style={{ color: '#e2e8f0' }}>{info.label}</Text>
-                          <Text style={{ color: '#64748b', fontSize: 12 }}>
-                            {qtd} veículo{qtd !== 1 ? 's' : ''}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 5,
-                        backgroundColor: selecionado ? info.color : 'transparent',
-                        borderWidth: selecionado ? 0 : 2,
-                        borderColor: '#475569',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}>
-                        {selecionado && <Check size={14} color="#fff" weight="bold" />}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-              <View style={styles.modalFooter}>
-                <TouchableOpacity style={styles.btnLimpar} onPress={limparFiltros}>
-                  <Text style={styles.btnLimparTexto}>Limpar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.btnAplicar} onPress={aplicarFiltros}>
-                  <Text style={styles.btnAplicarTexto}>
-                    Aplicar{statusSelecionados.length > 0 ? ` (${statusSelecionados.length})` : ''}
+              {veiculosFiltrados.length === 0 && (
+                <View style={{ marginTop: 60, alignItems: 'center' }}>
+                  <Text style={{ color: '#475569', fontSize: 16, textAlign: 'center' }}>
+                    Nenhum veículo encontrado para{'\n'}esta data e filtros.
                   </Text>
-                </TouchableOpacity>
-              </View>
-            </Pressable>
-          </Pressable>
-        </Modal>
+                </View>
+              )}
+              <View style={{ height: 100 }} />
+            </View>
+          </ScrollView>
+        )}
 
         <BottomMenu navigation={navigation} />
       </SafeAreaView>
