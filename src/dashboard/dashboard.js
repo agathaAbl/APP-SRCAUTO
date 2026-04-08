@@ -16,11 +16,8 @@ import BankRow from '../components/bankrow';
 import StatCard from '../components/statcard';
 import CalendarioRegistros from '../Calendario/CalendarioRegistros';
 import BottomMenu from '../menulateral/menulateral';
-import { getAuth } from '../services/storage'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-
-const API_URL = 'https://srcauto-homolog.grupoabl.com.br/Api/SRC/DashBoardGeral?';
+import { apiFetch } from '../services/apiFetch';
 
 const MESES = [
   'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
@@ -28,8 +25,7 @@ const MESES = [
 ];
 
 export default function Dashboard({ navigation }) {
-  
-  const [dataSelecionada, setDataSelecionada] = useState(() => new Date('2025-02-01T12:00:00'));
+  const [dataSelecionada, setDataSelecionada] = useState(new Date('2025-02-01T12:00:00'));
   const [cards, setCards] = useState([]);
   const [bancos, setBancos] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
@@ -40,7 +36,7 @@ export default function Dashboard({ navigation }) {
   const mes = dataSelecionada.getMonth();
   const dia = dataSelecionada.getDate();
 
-  
+  // ---------- Funções auxiliares ----------
   function formatarDataParaApi(data) {
     const a = data.getFullYear();
     const m = String(data.getMonth() + 1).padStart(2, '0');
@@ -55,9 +51,8 @@ export default function Dashboard({ navigation }) {
   }
 
   function getCorVariacao(valor) {
-    const v = Number(valor);
-    if (v > 0) return '#39d0a1';
-    if (v < 0) return '#ff4d4d';
+    if (valor > 0) return '#39d0a1';
+    if (valor < 0) return '#ff4d4d';
     return '#7a8fb5';
   }
 
@@ -81,99 +76,83 @@ export default function Dashboard({ navigation }) {
     return String(v);
   }
 
- 
+  // ---------- Buscar dashboard usando apiFetch ----------
   async function buscarDashboard() {
-  try {
-    setCarregando(true);
-    setErroApi('');
+    try {
+      setCarregando(true);
+      setErroApi('');
 
-    // Recupera token apenas do AsyncStorage
-    const dadostoken = await AsyncStorage.getItem("Token");
-    if (!dadostoken) {
-      setErroApi('Sessão expirada. Faça login novamente.');
-      setCarregando(false);
-      return;
-    }
-    const token = JSON.parse(dadostoken);
+      const dadostoken = await AsyncStorage.getItem("Token");
+      if (!dadostoken) {
+        setErroApi('Sessão expirada. Faça login novamente.');
+        return;
+      }
+      const token = JSON.parse(dadostoken);
 
-    const dataFormatada = formatarDataParaApi(dataSelecionada);
-    const url = `${API_URL}?Data=${dataFormatada}&DiaUtil=True`;
+      const dataFormatada = formatarDataParaApi(dataSelecionada);
+      const endpoint = `/DashBoardGeral?Data=${dataFormatada}&DiaUtil=True`;
 
-    console.log("🔎 URL chamada:", url);
-    console.log("🔑 Token usado:", token);
+      console.log("🔎 Endpoint chamado:", endpoint);
+      console.log("🔑 Token usado:", token);
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+      const data = await apiFetch(endpoint, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
 
-    if (response.status === 401) {
-      setErroApi('Sessão inválida ou expirada.');
-      setCarregando(false);
-      return;
-    }
-
-    if (!response.ok) {
-      const erroServidor = await response.text();
-      console.error("❌ Erro servidor:", erroServidor);
-      throw new Error(`Erro HTTP: ${response.status} - ${erroServidor}`);
-    }
-
-    const data = await response.json();
-
-    const dados = {
-      ...data,
-      RegDiaSel_IN: normalizarNumero(data?.RegDiaSel_IN),
-      RegSemAnt_IN: normalizarNumero(data?.RegSemAnt_IN),
-      RegMesAnt_IN: normalizarNumero(data?.RegMesAnt_IN),
-      RegDiaAnt_IN: normalizarNumero(data?.RegDiaAnt_IN),
-      VarDia_PC: normalizarNumero(data?.VarDia_PC),
-    };
-
-    setCards([
-      { valor: formatarNumero(dados.RegDiaSel_IN), descricao: 'Registros Hoje', icon: CalendarDotsIcon, cor: '#39d0a1' },
-      { valor: formatarNumero(dados.RegSemAnt_IN), descricao: 'Semana Anterior', icon: ChartBar, cor: '#4da6ff' },
-      { valor: formatarNumero(dados.RegMesAnt_IN), descricao: 'Mês Anterior', icon: Car, cor: '#ffb84d' },
-      {
-        valor: dados.RegDiaAnt_IN === 0 ? 'Novo' : formatarPercentual(dados.VarDia_PC),
-        descricao: 'Variação Dia', icon: TrendUp, cor: getCorVariacao(dados.VarDia_PC),
-      },
-    ]);
-
-    const listaCredores = data?.Credor || [];
-    setBancos(listaCredores.map((b) => {
-      const regDia = normalizarNumero(b?.RegDiaSel_IN);
-      const regDiaAnt = normalizarNumero(b?.RegDiaAnt_IN);
-      return {
-        ...b,
-        RegDiaSel_IN: regDia,
-        RegDiaAnt_IN: regDiaAnt,
-        variacaoFormatada: regDiaAnt === 0 ? 'Novo' : formatarPercentual(b?.VarDia_PC),
+      // Normalizando números
+      const dados = {
+        ...data,
+        RegDiaSel_IN: normalizarNumero(data?.RegDiaSel_IN),
+        RegSemAnt_IN: normalizarNumero(data?.RegSemAnt_IN),
+        RegMesAnt_IN: normalizarNumero(data?.RegMesAnt_IN),
+        RegDiaAnt_IN: normalizarNumero(data?.RegDiaAnt_IN),
+        VarDia_PC: normalizarNumero(data?.VarDia_PC),
       };
-    }));
 
-    setNotificacoes([
-      ...(Array.isArray(data?.Credor) ? data.Credor : []),
-      ...(Array.isArray(data?.Detran) ? data.Detran : []),
-    ]);
+      // Cards principais
+      setCards([
+        { valor: formatarNumero(dados.RegDiaSel_IN), descricao: 'Registros Hoje', icon: CalendarDotsIcon, cor: '#39d0a1' },
+        { valor: formatarNumero(dados.RegSemAnt_IN), descricao: 'Semana Anterior', icon: ChartBar, cor: '#4da6ff' },
+        { valor: formatarNumero(dados.RegMesAnt_IN), descricao: 'Mês Anterior', icon: Car, cor: '#ffb84d' },
+        {
+          valor: dados.RegDiaAnt_IN === 0 ? 'Novo' : formatarPercentual(dados.VarDia_PC),
+          descricao: 'Variação Dia', icon: TrendUp, cor: getCorVariacao(dados.VarDia_PC),
+        },
+      ]);
 
-  } catch (error) {
-    console.error('⚠️ Erro ao buscar dashboard:', error);
-    setErroApi('Não foi possível conectar ao servidor.');
-  } finally {
-    setCarregando(false);
+      // Bancos
+      const listaCredores = data?.Credor || [];
+      setBancos(listaCredores.map(b => {
+        const regDia = normalizarNumero(b?.RegDiaSel_IN);
+        const regDiaAnt = normalizarNumero(b?.RegDiaAnt_IN);
+        return {
+          ...b,
+          RegDiaSel_IN: regDia,
+          RegDiaAnt_IN: regDiaAnt,
+          variacaoFormatada: regDiaAnt === 0 ? 'Novo' : formatarPercentual(b?.VarDia_PC),
+        };
+      }));
+
+      // Notificações
+      setNotificacoes([
+        ...(Array.isArray(data?.Credor) ? data.Credor : []),
+        ...(Array.isArray(data?.Detran) ? data.Detran : []),
+      ]);
+
+    } catch (error) {
+      console.error('⚠️ Erro ao buscar dashboard:', error);
+      setErroApi('Não foi possível conectar ao servidor.');
+    } finally {
+      setCarregando(false);
+    }
   }
-}
 
-  
-  useEffect(() => { 
-    buscarDashboard(); 
+  useEffect(() => {
+    buscarDashboard();
   }, [dataSelecionada]);
 
-
+  // ---------- Render ----------
   return (
     <View style={{ flex: 1, backgroundColor: '#071a2c' }}>
       <SafeAreaView style={{ flex: 1 }} edges={['left', 'right', 'bottom']}>
@@ -226,16 +205,13 @@ export default function Dashboard({ navigation }) {
           </View>
         )}
 
-        {/* CONTEÚDO SCROLLABLE */}
+        {/* SCROLL */}
         <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
           <View style={styles.content}>
-            
-            {/* Grid de Estatísticas (Cards Superiores) */}
             <View style={styles.statsGrid}>
               {cards.map((item, index) => <StatCard key={index} item={item} />)}
             </View>
 
-            {/* Seção de Bancos */}
             <View style={styles.sectionRow}>
               <Text style={styles.sectionTitle}>Bancos com Mais Registros</Text>
             </View>
@@ -246,7 +222,6 @@ export default function Dashboard({ navigation }) {
               }
             </View>
 
-            {/* Seção de Notificações/Veículos */}
             <View style={styles.sectionRow}>
               <Text style={styles.sectionTitle}>Notificações</Text>
             </View>
@@ -263,13 +238,11 @@ export default function Dashboard({ navigation }) {
                 ))
               : !carregando && <Text style={campo.listaVazia}>Nenhuma notificação encontrada.</Text>
             }
-            
-            {/* Espaçamento final para o menu bottom não cobrir o conteúdo */}
+
             <View style={{ height: 100 }} />
           </View>
         </ScrollView>
 
-        {/* MENU INFERIOR */}
         <BottomMenu navigation={navigation} notificacoes={notificacoes} />
       </SafeAreaView>
     </View>
@@ -277,8 +250,7 @@ export default function Dashboard({ navigation }) {
 }
 
 const campo = StyleSheet.create({
-  container: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  container: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#0e2236', borderRadius: 8, padding: 10, marginHorizontal: 16, marginBottom: 6,
   },
   titulo: { color: '#258769', fontWeight: '600', flex: 1, textAlign: 'center' },
