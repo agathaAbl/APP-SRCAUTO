@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, Modal, TouchableWithoutFeedback } from 'react-native';
+import { View, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { MagnifyingGlass } from 'phosphor-react-native';
 import styles from './CalendarRegistroStyles';
@@ -27,9 +27,9 @@ export default function CalendarioRegistros({ dataSelecionada, setDataSelecionad
       </TouchableOpacity>
 
       <Modal visible={mostrarCalendario} transparent animationType="fade" onRequestClose={() => setMostrarCalendario(false)}>
-        <TouchableWithoutFeedback onPress={() => setMostrarCalendario(false)}>
+        <Pressable onPress={() => setMostrarCalendario(false)}>
           <View style={styles.overlay}>
-            <TouchableWithoutFeedback>
+            <Pressable>
               <View style={styles.calendarioWrapper}>
                 <Calendar
                   current={dataFormatada}
@@ -60,9 +60,9 @@ export default function CalendarioRegistros({ dataSelecionada, setDataSelecionad
                   }}
                 />
               </View>
-            </TouchableWithoutFeedback>
+            </Pressable>
           </View>
-        </TouchableWithoutFeedback>
+        </Pressable>
       </Modal>
     </View>
   );

@@ -6,6 +6,11 @@ export default function StatCard({ item }) {
   // Verificamos se a descrição contém "Variação" para aplicar a cor dinâmica no texto
   const isVariacao = item.descricao?.toLowerCase().includes('variação');
 
+  // Safeguard: if no icon, don't render
+  if (!item.icon) {
+    return null;
+  }
+
   return (
     <View style={[styles.statCard, { borderWidth: 1, borderColor: '#0f3a55' }]}>
       {/* O fundo do ícone ganha uma transparência da cor original (22 no final do hex) */}
