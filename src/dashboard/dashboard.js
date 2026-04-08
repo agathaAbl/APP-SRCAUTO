@@ -264,7 +264,7 @@ const endpoint = `/DashBoardGeral?Data=${encodeURIComponent(dataFormatada)}`;
             RegDiaSel_IN: regDia,
             RegDiaAnt_IN: regDiaAnt,
             variacaoFormatada:
-              regDiaAnt === 0 ? 'Novo' : formatarPercentual(b?.VarDia_PC),
+              regDiaAnt === 1 ? 'Novo' : formatarPercentual(b?.VarDia_PC),
           };
         })
       );

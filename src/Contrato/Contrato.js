@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -12,10 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretLeft, Calendar, FileText, Car, User, Bank, MapPin, Percent, CreditCard } from 'phosphor-react-native';
 
 import BottomMenu from '../menulateral/menulateral';
-import styles from '../../src/Contrato/contratoStyles';
+import styles from './ContratoStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ✅ MAPEAMENTO COMPLETO DOS STATUS
 const STATUS_MAP = {
   0: { label: 'Todos', color: '#6b7280' },
   1: { label: 'Cadastrado', color: '#3b82f6' },
@@ -34,12 +34,17 @@ export default function Contrato({ navigation, route }) {
   const { veiculo } = route.params;
   const idContrato = veiculo?.tCotr_ID;
 
+  console.log('Route params:', route.params);
+  console.log('Veiculo:', veiculo);
+  console.log('idContrato:', idContrato);
+
   const [contrato, setContrato] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [erroApi, setErroApi] = useState('');
 
-  // ✅ FUNÇÃO PARA PEGAR INFORMAÇÕES DO STATUS
+  
+  
   const getStatusInfo = (statusCode) => {
     const status = STATUS_MAP[statusCode] || STATUS_MAP[0];
     return {

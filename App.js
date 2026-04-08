@@ -10,6 +10,7 @@ import veiculos from './src/veiculos/veiculos';
 import notificacoes from './src/notificacoes/notificacoes';
 import esqueceusenha from './src/senha/esqueceusenha';
 import menulateral from './src/menulateral/menulateral';
+import contrato from './src/Contrato/Contrato';
 const Stack = createNativeStackNavigator();
 
 const AppTheme = {
@@ -65,8 +66,15 @@ export default function App() {
             name="esqueceusenha"
             component={esqueceusenha}
           />
-
-         
+        
+            <Stack.Screen
+            name="menulateral"
+            component={menulateral}
+          />
+          <Stack.Screen
+            name="contrato"
+            component={contrato}
+          />
         </Stack.Navigator>
 
       </NavigationContainer>

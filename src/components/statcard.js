@@ -3,7 +3,11 @@ import { View, Text } from 'react-native';
 import styles from '../dashboard/dashboardstyles';
 
 export default function StatCard({ item }) {
-  // Detecta se é variação
+
+  console.log('🧪 StatCard item completo:', item);
+  console.log('📊 Valor recebido:', item?.valor, 'Tipo:', typeof item?.valor);
+
+
   const isVariacao = item?.descricao?.toLowerCase().includes('variação');
 
   const Icon = item?.icon;
@@ -16,7 +20,6 @@ export default function StatCard({ item }) {
         {Icon ? (
           <Icon size={20} color={item?.cor || '#999'} weight="fill" />
         ) : (
-          
           <Text style={{ color: '#999' }}>?</Text>
         )}
       </View>
