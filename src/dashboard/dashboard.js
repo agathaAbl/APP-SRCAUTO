@@ -19,6 +19,7 @@ import BottomMenu from '../menulateral/menulateral';
 import { getAuth } from '../services/storage'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+
 const API_URL = 'https://srcauto-homolog.grupoabl.com.br/Api/SRC/DashBoardGeral?';
 
 const MESES = [

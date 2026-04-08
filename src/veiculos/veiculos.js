@@ -3,25 +3,36 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StatusBar,
   ActivityIndicator,
   TextInput,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MagnifyingGlass, CaretLeft, CaretRight } from 'phosphor-react-native';
+import { MagnifyingGlass, Calendar as CalendarIcon } from 'phosphor-react-native';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { getAuth } from '../services/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomMenu from '../menulateral/menulateral';
 import styles from './veiculosstyles';
 
+// Configuração do calendário para Português
+LocaleConfig.locales['pt-br'] = {
+  monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+  monthNamesShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+  dayNames: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
+  dayNamesShort: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+  today: 'Hoje'
+};
+LocaleConfig.defaultLocale = 'pt-br';
+
 const API_URL = 'https://srcauto-homolog.grupoabl.com.br/Api/Src/VeiculoContrato';
 
 export default function Veiculos({ navigation }) {
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
+  const [showCalendar, setShowCalendar] = useState(false);
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [busca, setBusca] = useState('');
   const [statusSelecionados, setStatusSelecionados] = useState([]);
 
@@ -41,12 +52,6 @@ export default function Veiculos({ navigation }) {
     10: { label: 'Transmitido', color: '#14b8a6' },
   };
 
-  const mudarData = (dias) => {
-    const novaData = new Date(dataSelecionada);
-    novaData.setDate(novaData.getDate() + dias);
-    setDataSelecionada(novaData);
-  };
-
   function formatarDataParaApi(data) {
     const ano = data.getFullYear();
     const mes = String(data.getMonth() + 1).padStart(2, '0');
@@ -60,10 +65,7 @@ export default function Veiculos({ navigation }) {
 
   const veiculosFiltrados = vehicles.filter(v => {
     const termo = busca.toLowerCase().trim();
-    const matchesSearch = !termo || (
-      v.plate.toLowerCase().includes(termo) ||
-      v.owner.toLowerCase().includes(termo)
-    );
+    const matchesSearch = !termo || (v.plate.toLowerCase().includes(termo) || v.owner.toLowerCase().includes(termo));
     const matchesStatus = statusSelecionados.length === 0 || statusSelecionados.includes(v.status);
     return matchesSearch && matchesStatus;
   });
@@ -71,8 +73,6 @@ export default function Veiculos({ navigation }) {
   async function buscarVeiculos() {
     try {
       setLoading(true);
-      setError('');
-      
       const auth = await getAuth();
       let token = auth?.status?.replace(/^"|"$/g, '').trim();
 
@@ -81,19 +81,10 @@ export default function Veiculos({ navigation }) {
         token = tokenStorage?.replace(/^"|"$/g, '').trim();
       }
 
-      // --- LOG 1: TOKEN ---
-      console.log('--- [DEBUG] AUTHENTICATION ---');
-      console.log('Token (fatiado):', token ? `${token.substring(0, 30)}...` : 'NÃO ENCONTRADO');
-
       const payload = {
         tCotr_Cadt_DT: formatarDataParaApi(dataSelecionada),
         tCotr_Stat_CK: 0 
       };
-
-      // --- LOG 2: REQUISIÇÃO ---
-      console.log('--- [DEBUG] REQUEST ---');
-      console.log('URL de Destino:', API_URL);
-      console.log('Corpo do POST:', JSON.stringify(payload));
 
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -104,46 +95,29 @@ export default function Veiculos({ navigation }) {
         body: JSON.stringify(payload)
       });
 
-      // --- LOG 3: STATUS HTTP ---
-      console.log('Resposta HTTP Status:', response.status);
-
       const data = await response.json();
-      
-      // --- LOG 4: RESPOSTA COMPLETA ---
-      console.log('--- [DEBUG] API RESPONSE ---');
-      console.log(JSON.stringify(data, null, 2));
-
       let veiculosArray = data?.sdtVeiculoContrato || data?.SDTVeiculoContrato || (Array.isArray(data) ? data : []);
-      
-      console.log(`Quantidade de itens encontrados: ${veiculosArray.length}`);
 
       const veiculosFormatados = veiculosArray.map(item => {
         const statusRaw = item.tCotr_Stat_CK ?? item.tcotr_stat_ck ?? 0;
         const statusNum = Number(statusRaw);
-        const info = getStatusInfo(statusNum);
-
         return {
           id: item.tCotr_ID || item.tcotr_id || Math.random().toString(),
           contratoNumero: item.tCotr_nrCotr_SS || item.tcotr_nrcotr_ss || 'N/A',
           plate: item.tveic_plac_ss || item.Tveic_Plac_SS || 'N/A',
           owner: item.sCotrDvdr_nome_sl || item.scotrdvdr_nome_sl || 'N/A',
-          chassi: item.tveic_chss_sl || 'N/A',
           date: item.tcotr_Cadt_DT || 'N/A',
           status: statusNum,
-          statusLabel: info.label,
-          statusColor: info.color,
-          banco: item.sCotrCrdr_nome_sl || 'N/A',
+          statusLabel: getStatusInfo(statusNum).label,
+          statusColor: getStatusInfo(statusNum).color,
           uf: item.sveicuf_sg || 'N/A',
-          restricao: item.tcotrveic_nrrest_in || 'N/A',
           original: item,
         };
       });
 
       setVehicles(veiculosFormatados);
     } catch (err) {
-      console.error('--- [ERRO] FALHA NA BUSCA ---');
       console.error(err);
-      setError('Erro ao carregar dados.');
     } finally {
       setLoading(false);
     }
@@ -162,28 +136,48 @@ export default function Veiculos({ navigation }) {
           <Text style={styles.titulo}>Veículos</Text>
         </View>
 
-        {/* NAVEGAÇÃO DE DATA */}
-        <View style={{ 
-          flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
-          paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#1e293b',
-          marginHorizontal: 16, borderRadius: 12, marginBottom: 10
-        }}>
-          <TouchableOpacity onPress={() => mudarData(-1)}>
-            <CaretLeft size={28} color="#10b981" weight="bold" />
-          </TouchableOpacity>
-          
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}>BUSCA POR DIA</Text>
+        {/* Cabeçalho de Data - Clique para abrir o calendário */}
+        <TouchableOpacity 
+          onPress={() => setShowCalendar(!showCalendar)}
+          style={{ alignItems: 'center', marginVertical: 10, backgroundColor: '#1e293b', padding: 10, marginHorizontal: 16, borderRadius: 10 }}
+        >
+          <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}>BUSCA POR DIA (CLIQUE PARA ALTERAR)</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <CalendarIcon size={20} color="#10b981" />
             <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
               {dataSelecionada.toLocaleDateString('pt-BR')}
             </Text>
           </View>
+        </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => mudarData(1)}>
-            <CaretRight size={28} color="#10b981" weight="bold" />
-          </TouchableOpacity>
-        </View>
+        {/* Calendário Condicional */}
+        {showCalendar && (
+          <View style={{ marginBottom: 10 }}>
+            <Calendar
+              onDayPress={(day) => {
+                const novaData = new Date(day.timestamp);
+                novaData.setHours(novaData.getHours() + 3); // Ajuste de fuso horário se necessário
+                setDataSelecionada(novaData);
+                setShowCalendar(false); // Fecha ao selecionar
+              }}
+              markedDates={{
+                [dataSelecionada.toISOString().split('T')[0]]: { selected: true, selectedColor: '#10b981' }
+              }}
+              theme={{
+                backgroundColor: '#0f172a',
+                calendarBackground: '#1e293b',
+                textSectionTitleColor: '#94a3b8',
+                dayTextColor: '#fff',
+                monthTextColor: '#10b981',
+                selectedDayBackgroundColor: '#10b981',
+                selectedDayTextColor: '#fff',
+                arrowColor: '#10b981',
+              }}
+            />
+          </View>
+        )}
 
+        {/* Busca */}
         <View style={styles.buscaContainer}>
           <MagnifyingGlass size={20} color="#64748b" />
           <TextInput
@@ -195,7 +189,7 @@ export default function Veiculos({ navigation }) {
           />
         </View>
 
-        {/* FILTROS DE STATUS */}
+        {/* Filtros de Status */}
         <View style={{ height: 50, marginBottom: 10 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center' }}>
             {Object.entries(STATUS_CONFIG).map(([key, { label, color }]) => {
