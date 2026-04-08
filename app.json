@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "APPSRCAUTO",
-    "slug": "APPSRCAUTO",
+    "slug": "",
     "version": "1.0.0",
     "sdkVersion": "55.0.0",
     "platforms": ["android", "ios"],
