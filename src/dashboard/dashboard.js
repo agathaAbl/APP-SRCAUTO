@@ -191,7 +191,7 @@ export default function Dashboard({ navigation }) {
 
       const dataSegura = criarDataLocalSegura(dataSelecionada);
       const dataFormatada = formatarDataParaApi(dataSegura);
-     const endpoint = `/DashBoardGeral?Data=2026-04-07`;
+const endpoint = `/DashBoardGeral?Data=${encodeURIComponent(dataFormatada)}`;
 
       console.log('🧪 DEBUG DATA:', {
         dataSelecionadaString: dataSelecionada?.toString?.(),
