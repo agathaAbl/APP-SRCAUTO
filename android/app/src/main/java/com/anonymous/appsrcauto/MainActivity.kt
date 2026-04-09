@@ -1,4 +1,4 @@
-package com.anonymous.seuapp
+package com.anonymous.appsrcauto
 
 import android.os.Build
 import android.os.Bundle

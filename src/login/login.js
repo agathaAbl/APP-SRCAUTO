@@ -90,7 +90,7 @@ export default function Login({ navigation }) {
         <View style={styles.circle3} />
         <View style={styles.circle4} />
 
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
+        <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
           {/* Logo Animada */}
           <Animated.View style={[styles.logoWrap, { opacity: logoAnim }]}>
             <View style={styles.logoBox}>

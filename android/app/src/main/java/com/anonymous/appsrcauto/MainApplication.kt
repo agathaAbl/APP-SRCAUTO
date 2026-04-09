@@ -1,4 +1,4 @@
-package com.anonymous.seuapp
+package com.anonymous.appsrcauto
 
 import android.app.Application
 import android.content.res.Configuration

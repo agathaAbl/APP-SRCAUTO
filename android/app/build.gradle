@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.seuapp'
+    namespace 'com.anonymous.appsrcauto'
     defaultConfig {
-        applicationId 'com.anonymous.seuapp'
+        applicationId 'com.anonymous.appsrcauto'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

@@ -1,5 +1,5 @@
 // storage.js
-import AsyncStorage from '@react-native-async-storage/async-storage';
+//import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 const datenow = new Date();

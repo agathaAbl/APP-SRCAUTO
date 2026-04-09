@@ -77,7 +77,6 @@ export default function EsqueceuSenha({ navigation }) {
         >
           <ScrollView
             contentContainerStyle={styles.scroll}
-            keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
 
